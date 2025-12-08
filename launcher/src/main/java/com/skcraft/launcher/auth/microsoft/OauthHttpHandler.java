@@ -2,13 +2,17 @@ package com.skcraft.launcher.auth.microsoft;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
+import com.skcraft.launcher.Launcher;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import lombok.extern.java.Log;
+import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -56,7 +60,23 @@ public class OauthHttpHandler {
 				OauthHttpHandler.this.notifyAll();
 			}
 
-			byte[] response = "OK: you can close the browser now".getBytes(Charsets.UTF_8);
+			byte[] response;
+			InputStream is = Launcher.class.getResourceAsStream("login.html");
+			if (is != null) {
+				response = IOUtils.toByteArray(is);
+			} else {
+				response = "Unable to fetch resource login.html".getBytes(Charsets.UTF_8);
+			}
+
+			InputStream iconStream = Launcher.class.getResourceAsStream("icon.png");
+			if (iconStream != null) {
+				byte[] iconBytes = IOUtils.toByteArray(iconStream);
+				String encodedIcon = Base64.getEncoder().encodeToString(iconBytes);
+				response = String.format(new String(response), encodedIcon).getBytes(Charsets.UTF_8);
+			} else {
+				log.warning("Unable to fetch resource icon.png");
+			}
+
 			httpExchange.sendResponseHeaders(200, response.length);
 			httpExchange.getResponseBody().write(response);
 			httpExchange.getResponseBody().flush();
